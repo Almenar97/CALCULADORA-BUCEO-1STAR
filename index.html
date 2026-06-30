@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Planificador de Inmersión Multinivel</title>
+<style>
+  :root {
+    --blue-deep: #04293a;
+    --blue-mid: #0a4a6e;
+    --blue-accent: #1b98e0;
+    --blue-light: #e8f4fb;
+    --warn: #e0631b;
+    --danger: #d6362c;
+    --text: #0d2538;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(180deg, var(--blue-deep) 0%, var(--blue-mid) 280px, var(--blue-light) 280px);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+  header {
+    padding: 28px 20px 18px;
+    text-align: center;
+    color: #fff;
+  }
+  header h1 {
+    margin: 0 0 6px;
+    font-size: 1.4rem;
+    letter-spacing: 0.3px;
+  }
+  header p {
+    margin: 0;
+    font-size: 0.88rem;
+    opacity: 0.85;
+  }
+  main {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(4, 41, 58, 0.18);
+    margin-bottom: 18px;
+  }
+  .card h2 {
+    font-size: 1rem;
+    margin: 0 0 14px;
+    color: var(--blue-mid);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card h2 .hint {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #6b8494;
+  }
+  .field {
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.83rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #2b4a5c;
+  }
+  .field label .unit {
+    font-weight: 400;
+    color: #6b8494;
+  }
+  .field input[type=number] {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1.5px solid #cfe2ec;
+    border-radius: 10px;
+    font-size: 1rem;
+    background: #fbfdfe;
+    color: var(--text);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field input[type=number]:focus {
+    outline: none;
+    border-color: var(--blue-accent);
+  }
+  .field-row {
+    display: flex;
+    gap: 10px;
+  }
+  .field-row .field { flex: 1; margin-bottom: 0; }
+  .level {
+    border: 1.5px solid #e3eef4;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    position: relative;
+    background: #fbfdfe;
+  }
+  .level-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--blue-accent);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .level-remove {
+    border: none;
+    background: #fdecea;
+    color: var(--danger);
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .level-depth-warning {
+    font-size: 0.74rem;
+    color: var(--warn);
+    margin-top: 4px;
+    display: none;
+  }
+  .add-level-btn {
+    width: 100%;
+    padding: 11px;
+    border: 1.5px dashed var(--blue-accent);
+    background: #f0f9ff;
+    color: var(--blue-accent);
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .add-level-btn:hover { background: #e3f3fc; }
+  .fixed-phase {
+    background: #eef5f9;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    color: #2b4a5c;
+    display: flex;
+    justify-content: space-between;
+  }
+  .fixed-phase b { color: var(--blue-mid); }
+  .results {
+    background: var(--blue-deep);
+    color: #fff;
+    border-radius: 16px;
+    padding: 22px 20px;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .results .big {
+    font-size: 2.3rem;
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 4px 0 2px;
+  }
+  .results .big small {
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.8;
+  }
+  .results .label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.75;
+  }
+  .breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .breakdown div {
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .breakdown .v { font-size: 1.1rem; font-weight: 700; }
+  .breakdown .l { font-size: 0.7rem; opacity: 0.75; margin-top: 2px; }
+  table.phases {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  table.phases th, table.phases td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid #e8f0f4;
+  }
+  table.phases th {
+    color: #6b8494;
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+  }
+  table.phases tr.unknown td { color: var(--blue-accent); font-weight: 700; }
+  table.phases tr.fixed td:first-child { color: #6b8494; }
+  .message {
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+    border: 1.5px solid transparent;
+  }
+  .message.warn {
+    background: #fff4e9;
+    border-color: #f3c08a;
+    color: #8a4a0f;
+  }
+  .message.danger {
+    background: #fdecea;
+    border-color: #f1a8a2;
+    color: #8a221a;
+  }
+  .message.info {
+    background: #eaf6fb;
+    border-color: #a9d8ec;
+    color: #0a4a6e;
+  }
+  footer {
+    text-align: center;
+    font-size: 0.72rem;
+    color: #6b8494;
+    padding: 10px 20px 0;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🤿 Planificador de Inmersión</h1>
+  <p>Perfil multinivel: descensos, paradas a profundidad, ascensos y parada de seguridad</p>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Equipo y consumo</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Capacidad botella <span class="unit">L</span></label>
+        <input type="number" id="tankSize" value="15" min="0.1" step="0.5" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Presión actual <span class="unit">bar</span></label>
+        <input type="number" id="tankPressure" value="200" min="0" step="5" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field-row" style="margin-top:14px;">
+      <div class="field">
+        <label>Reserva mínima <span class="unit">bar</span></label>
+        <input type="number" id="reservePressure" value="50" min="0" step="5" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Velocidad ascenso/descenso <span class="unit">m/min</span></label>
+        <input type="number" id="rate" value="10" min="1" step="1" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px; margin-bottom:0;">
+      <label>Consumo personal en superficie (SAC) <span class="unit">L/min</span></label>
+      <input type="number" id="sac" value="20" min="1" step="0.5" inputmode="decimal">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Niveles de buceo <span class="hint">deja el tiempo vacío en uno para calcularlo</span></h2>
+    <div id="levelsContainer"></div>
+    <button type="button" class="add-level-btn" id="addLevelBtn">+ Añadir nivel</button>
+  </div>
+
+  <div class="card">
+    <h2>Parada de seguridad <span class="hint">fija para curso 1 estrella</span></h2>
+    <div class="fixed-phase">
+      <span>Profundidad: <b>5 m</b></span>
+      <span>Duración: <b>3 min</b></span>
+    </div>
+  </div>
+
+  <div id="messages"></div>
+
+  <div class="results">
+    <div class="label">Tiempo total de inmersión</div>
+    <div class="big" id="resultTotalTime">— <small>min</small></div>
+    <div class="breakdown">
+      <div>
+        <div class="v" id="resultAirUsed">—</div>
+        <div class="l">aire consumido (L)</div>
+      </div>
+      <div>
+        <div class="v" id="resultEndPressure">—</div>
+        <div class="l">presión final (bar)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="phasesCard" style="display:none;">
+    <h2>Desglose por fases</h2>
+    <table class="phases">
+      <thead>
+        <tr><th>Fase</th><th>Prof.</th><th>Duración</th><th>Aire (L)</th></tr>
+      </thead>
+      <tbody id="phasesBody"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    Estimación orientativa basada en consumo lineal con la presión absoluta. No sustituye tu ordenador de buceo, las tablas ni tu formación de buceo. Bucea siempre dentro de tus límites y con un compañero.
+  </footer>
+</main>
+
+<script>
+  const MAX_DEPTH_CERT = 25; // límite curso 1 estrella
+  const SAFETY_STOP_DEPTH = 5;
+  const SAFETY_STOP_TIME = 3;
+
+  const $ = id => document.getElementById(id);
+  const levelsContainer = $('levelsContainer');
+  const addLevelBtn = $('addLevelBtn');
+  const messagesBox = $('messages');
+
+  let levelIdCounter = 0;
+  let levels = [];
+
+  function addLevel(depth, time) {
+    levelIdCounter++;
+    levels.push({ id: levelIdCounter, depth: depth, time: time });
+    renderLevels();
+    calculate();
+  }
+
+  function removeLevel(id) {
+    levels = levels.filter(l => l.id !== id);
+    renderLevels();
+    calculate();
+  }
+
+  function renderLevels() {
+    levelsContainer.innerHTML = '';
+    levels.forEach((level, idx) => {
+      const div = document.createElement('div');
+      div.className = 'level';
+      div.innerHTML = `
+        <div class="level-title">
+          <span>Nivel ${idx + 1}</span>
+          ${levels.length > 1 ? `<button type="button" class="level-remove" data-id="${level.id}">✕</button>` : ''}
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Profundidad <span class="unit">m</span></label>
+            <input type="number" class="level-depth" data-id="${level.id}" value="${level.depth}" min="0" step="0.5" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>Tiempo <span class="unit">min (vacío = calcular)</span></label>
+            <input type="number" class="level-time" data-id="${level.id}" value="${level.time === null ? '' : level.time}" min="0" step="1" inputmode="numeric" placeholder="calcular">
+          </div>
+        </div>
+        <div class="level-depth-warning">⚠️ Supera el límite de 25 m de tu titulación (1 estrella)</div>
+      `;
+      levelsContainer.appendChild(div);
+
+      const depthInput = div.querySelector('.level-depth');
+      const timeInput = div.querySelector('.level-time');
+      const depthWarning = div.querySelector('.level-depth-warning');
+
+      const syncDepthWarning = () => {
+        const d = parseFloat(depthInput.value);
+        depthWarning.style.display = (!isNaN(d) && d > MAX_DEPTH_CERT) ? 'block' : 'none';
+      };
+      syncDepthWarning();
+
+      depthInput.addEventListener('input', () => {
+        level.depth = parseFloat(depthInput.value);
+        syncDepthWarning();
+        calculate();
+      });
+      timeInput.addEventListener('input', () => {
+        level.time = timeInput.value === '' ? null : parseFloat(timeInput.value);
+        calculate();
+      });
+
+      const removeBtn = div.querySelector('.level-remove');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => removeLevel(level.id));
+      }
+    });
+  }
+
+  addLevelBtn.addEventListener('click', () => addLevel(10, null));
+
+  ['tankSize', 'tankPressure', 'reservePressure', 'rate', 'sac'].forEach(id => {
+    $(id).addEventListener('input', calculate);
+  });
+
+  function avgAta(d1, d2) {
+    return 1 + ((d1 + d2) / 2) / 10;
+  }
+
+  function ata(d) {
+    return 1 + d / 10;
+  }
+
+  function fmtTime(min) {
+    if (!isFinite(min)) return '—';
+    return min.toFixed(1).replace(/\.0$/, '');
+  }
+
+  function buildPhases(levelsInput) {
+    // Returns ordered list of physical phases. Each phase:
+    // { type: 'transition'|'level'|'safetystop', fromDepth, toDepth (transition only), depth (level/safetystop),
+    //   time: number|null (null = unknown, to solve), fixed: boolean }
+    const phases = [];
+    let prevDepth = 0;
+
+    levelsInput.forEach((level) => {
+      if (Math.abs(level.depth - prevDepth) > 1e-9) {
+        phases.push({ type: 'transition', fromDepth: prevDepth, toDepth: level.depth });
+      }
+      phases.push({ type: 'level', depth: level.depth, time: level.time, fixed: level.time !== null });
+      prevDepth = level.depth;
+    });
+
+    if (Math.abs(prevDepth - SAFETY_STOP_DEPTH) > 1e-9) {
+      phases.push({ type: 'transition', fromDepth: prevDepth, toDepth: SAFETY_STOP_DEPTH });
+    }
+    phases.push({ type: 'safetystop', depth: SAFETY_STOP_DEPTH, time: SAFETY_STOP_TIME, fixed: true });
+    prevDepth = SAFETY_STOP_DEPTH;
+
+    if (Math.abs(prevDepth - 0) > 1e-9) {
+      phases.push({ type: 'transition', fromDepth: prevDepth, toDepth: 0 });
+    }
+
+    return phases;
+  }
+
+  function showMessage(text, level) {
+    const div = document.createElement('div');
+    div.className = 'message ' + level;
+    div.textContent = text;
+    messagesBox.appendChild(div);
+  }
+
+  function calculate() {
+    messagesBox.innerHTML = '';
+    const tankSize = parseFloat($('tankSize').value);
+    const tankPressure = parseFloat($('tankPressure').value);
+    const reservePressure = parseFloat($('reservePressure').value);
+    const rate = parseFloat($('rate').value);
+    const sac = parseFloat($('sac').value);
+
+    const phasesCard = $('phasesCard');
+    const phasesBody = $('phasesBody');
+    phasesBody.innerHTML = '';
+    phasesCard.style.display = 'none';
+
+    const resetResults = () => {
+      $('resultTotalTime').innerHTML = '— <small>min</small>';
+      $('resultAirUsed').textContent = '—';
+      $('resultEndPressure').textContent = '—';
+    };
+
+    if ([tankSize, tankPressure, reservePressure, rate, sac].some(v => isNaN(v) || v < 0) || tankSize === 0 || rate === 0 || sac <= 0) {
+      resetResults();
+      return;
+    }
+
+    if (levels.some(l => isNaN(l.depth) || l.depth < 0)) {
+      resetResults();
+      return;
+    }
+
+    const unknownLevels = levels.filter(l => l.time === null);
+    if (unknownLevels.length > 1) {
+      resetResults();
+      showMessage('Has dejado más de un nivel sin tiempo definido. Deja como máximo uno vacío para que la app calcule su duración.', 'danger');
+      return;
+    }
+    if (levels.some(l => l.time !== null && (isNaN(l.time) || l.time < 0))) {
+      resetResults();
+      return;
+    }
+
+    const usableAir = tankSize * Math.max(tankPressure - reservePressure, 0);
+    if (tankPressure <= reservePressure) {
+      showMessage('La presión actual está en o por debajo de la reserva mínima. No queda aire utilizable para planificar la inmersión.', 'danger');
+    }
+
+    const phases = buildPhases(levels);
+
+    // Sum known air consumption and time across all fixed phases.
+    let knownAir = 0;
+    let knownTime = 0;
+    let unknownPhaseIndex = -1;
+
+    phases.forEach((p, idx) => {
+      if (p.type === 'transition') {
+        const t = Math.abs(p.toDepth - p.fromDepth) / rate;
+        const air = sac * avgAta(p.fromDepth, p.toDepth) * t;
+        p.time = t;
+        p.air = air;
+        knownAir += air;
+        knownTime += t;
+      } else if (p.type === 'safetystop') {
+        const air = sac * ata(p.depth) * p.time;
+        p.air = air;
+        knownAir += air;
+        knownTime += p.time;
+      } else if (p.type === 'level') {
+        if (p.time === null) {
+          unknownPhaseIndex = idx;
+        } else {
+          const air = sac * ata(p.depth) * p.time;
+          p.air = air;
+          knownAir += air;
+          knownTime += p.time;
+        }
+      }
+    });
+
+    let unsolvable = false;
+    if (unknownPhaseIndex !== -1) {
+      const p = phases[unknownPhaseIndex];
+      const depthSac = sac * ata(p.depth);
+      const remainingAir = usableAir - knownAir;
+      const t = remainingAir / depthSac;
+      if (t < 0 || !isFinite(t)) {
+        unsolvable = true;
+        p.time = 0;
+        p.air = 0;
+      } else {
+        p.time = t;
+        p.air = remainingAir;
+      }
+    }
+
+    const totalAir = phases.reduce((sum, p) => sum + (p.air || 0), 0);
+    const totalTime = phases.reduce((sum, p) => sum + (p.time || 0), 0);
+    const endPressure = tankPressure - (totalAir / tankSize);
+
+    if (unsolvable) {
+      showMessage('No queda aire suficiente para cubrir el nivel sin tiempo definido, ni siquiera con duración 0. Reduce el tiempo de los otros niveles, baja menos profundo o usa una botella con más presión/capacidad.', 'danger');
+    } else if (unknownPhaseIndex !== -1 && phases[unknownPhaseIndex].time < 1) {
+      showMessage('El tiempo calculado para el nivel sin definir es muy bajo (menos de 1 min). Revisa el resto de tiempos o la presión disponible.', 'warn');
+    }
+
+    if (endPressure < reservePressure) {
+      showMessage(`Este plan dejaría la botella en ${endPressure.toFixed(0)} bar, por debajo de tu reserva mínima de ${reservePressure} bar.`, 'warn');
+    }
+
+    if (levels.some(l => l.depth > MAX_DEPTH_CERT)) {
+      showMessage(`Uno o más niveles superan los ${MAX_DEPTH_CERT} m de límite recomendado para tu titulación (1 estrella).`, 'warn');
+    }
+
+    $('resultTotalTime').innerHTML = fmtTime(totalTime) + ' <small>min</small>';
+    $('resultAirUsed').textContent = totalAir.toFixed(0);
+    $('resultEndPressure').textContent = endPressure.toFixed(0);
+
+    const phaseLabel = (p) => {
+      if (p.type === 'transition') return p.toDepth > p.fromDepth ? 'Descenso' : 'Ascenso';
+      if (p.type === 'safetystop') return 'Parada seguridad';
+      return 'Buceo a profundidad';
+    };
+    const phaseDepthLabel = (p) => {
+      if (p.type === 'transition') return `${p.fromDepth}→${p.toDepth} m`;
+      return `${p.depth} m`;
+    };
+
+    phases.forEach((p, idx) => {
+      const tr = document.createElement('tr');
+      const isUnknown = idx === unknownPhaseIndex;
+      if (isUnknown) tr.className = 'unknown';
+      else if (p.type !== 'level') tr.className = 'fixed';
+      tr.innerHTML = `
+        <td>${phaseLabel(p)}${isUnknown ? ' (calculado)' : ''}</td>
+        <td>${phaseDepthLabel(p)}</td>
+        <td>${fmtTime(p.time)} min</td>
+        <td>${(p.air || 0).toFixed(0)}</td>
+      `;
+      phasesBody.appendChild(tr);
+    });
+    phasesCard.style.display = 'block';
+  }
+
+  // Initial setup matching the example dive
+  addLevel(9, null);
+  addLevel(14, 15);
+</script>
+</body>
+</html>
